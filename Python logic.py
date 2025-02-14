@@ -6,8 +6,8 @@ import os
 #C:\Users\cmccullough\Desktop\Payroll Automation 1.0
 
 # Define the file paths and sheet names - these should be updated for each file and computer where the code is executed
-input_file_path = r'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\Payrolls June & July 2024\HLI Payroll 6-7-24.xlsx' #First row(s) should be a header row
-input_file_path_emp_mapping = r'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\Payrolls\HLI 1-15-24 Payroll.xls' #First row(s) should be a header row
+input_file_path = r'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\NMG - February 2025\NMG Payroll 2-14-25.xlsx' #First row(s) should be a header row
+input_file_path_emp_mapping = r'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\Payrolls\NMG Employee Mapping.xlsx' #First row(s) should be a header row
 sheet_name_employee_mapping = 'Employee Mapping'
 gl_mapping_logic_file = r'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\GL Mapping Logic.xlsx' #First row(s) should be a header row
 gl_mapping_logic_sheet = 'GL Category Mapping'
@@ -38,7 +38,7 @@ df_employee_mapping = pd.read_excel(input_file_path_emp_mapping, sheet_name=shee
 df_gl_mapping_logic = pd.read_excel(gl_mapping_logic_file, sheet_name=gl_mapping_logic_sheet)
 
 
-# List of columns to keep for payroll allocation
+# List of columns to keep for payroll allocation (WARNING: this list needs to be maintained with newly identified Excels from each payroll run)
 columns_to_keep_payroll_allocation = [
     'EEID', 'Company Number', 'Company Name', 'Hire Date', 'Employee ID', 'Employee Name', 
     'Payroll Number', 'Home Location', 'Home Location Desc', 'Current Job Code', 'Current Job Desc', 
@@ -50,7 +50,9 @@ columns_to_keep_payroll_allocation = [
     'Anthem PPO 750 - B', 'Anthem HSA 3000', 'Northern CA Kaiser H', 'Southern CA Kaiser H', 'Guardian Dental PPO ',  'Guardian Dental PPO .1',
     'Guardian STD Tax Cho.1', 'Guardian STD Tax Cho', 'VSP Vision Standard', 'HEALTH SAVINGS ACCOU', 'NON CASH', 'WIRE FEE OFFSET','BEREAVEMENT',
     'FRINGE BENEFIT','JURY DUTY','REFERRAL BONUS','HALF PAY DOUBLE TIME','Off Cycle Fee','RETRO PAY','COMMISSION SUPPLEMEN', 'TRANSIT COMMUTER REI',
-    'PTO Payout', 'SEVERANCE', 'CA EMPLOYMENT TRAINI','MD SUTA', 'S1 401k MEP Annual F', 'Anthem HSA 3200'
+    'PTO Payout', 'SEVERANCE', 'CA EMPLOYMENT TRAINI','MD SUTA', 'S1 401k MEP Annual F', 'Anthem HSA 3200', 'Northern CA Anthem H', 'Domestic Partner Den', 'Domestic Partner Med', 'Domestic Partner Vis',
+    'WAITING PERIOD/PENAL', 'CREDIT WIRE', 'Guardian Accident Pr', 'Relocation Bonus', 'NET PAYROLL',
+    'TIME OFF', 'UT SUTA', 'ADMINISTRATIVE FEE M', 'OVERTIME', 'DOUBLETIME', 'REG1', 'VACATION', 'BONUS SUPPLEMENTAL', 'Unlimited Sick', #Added for NMG payroll processing (December 2024)
 ]
 
 # Filter the columns to keep only those that are present in the DataFrame
@@ -73,14 +75,14 @@ df_employee_mapping = df_employee_mapping.rename(columns={'Company Name': 'Compa
 columns_to_keep_employee_mapping = [
     'Employee ID', 'Company Name - Emp. Mapping', 'Home Department Desc', 'GL Account Description', 'Payroll Salaries', 
     'Payroll Taxes', 'Insurance-Medical', 'Insurance-Disability', 'Insurance-Life', 
-    'Insurance-Vision', 'Insurance-Dental', 'Payroll Processing', 'Bank Charges', 'Telephone', 'Accrued PTO'
+    'Insurance-Vision', 'Insurance-Dental', 'Payroll Processing', 'Bank Charges', 'Telephone', 'Accrued PTO', 'Cash'
 ]
 
 # Filter the employee mapping DataFrame to keep only the necessary columns for the join
 df_employee_mapping = df_employee_mapping[columns_to_keep_employee_mapping]
 
 # Filter for 'Human Longevity, Inc.' in the relevant column (confirmed that other companies aren't relevant to analysis)
-df_employee_mapping = df_employee_mapping[df_employee_mapping['Company Name - Emp. Mapping'] == 'Human Longevity, Inc.']
+df_employee_mapping = df_employee_mapping[df_employee_mapping['Company Name - Emp. Mapping'] == 'Nucleus Medical Group'] #Update accordingly: Nucleus Medical Group (NMG), Human Longevity, Inc. (HLI)
 
 # Perform the LEFT join on 'Employee ID'
 df_merged = pd.merge(df_payroll_allocation, df_employee_mapping, on='Employee ID', how='left')
@@ -151,6 +153,10 @@ for idx, payroll_row in df_merged.iterrows():
                 if Emp_ID == 'X90046' and column_name == 'Advance - Deduction ': 
                     gl_category = 'Accounts Receivable'
                     GL_Code = '1100-00'
+                #Exception #3 : added 9/11/2024
+                if Emp_ID == 'X90094' and column_name == 'Advance - Deduction ': 
+                    gl_category = 'Accounts Receivable'
+                    GL_Code = '1100-00'
 
                 # Append the data to the list
                 gl_costs_data.append({
@@ -183,7 +189,7 @@ Payroll_Number = df_merged['Payroll Number'][0]
 
 # Save the merged DataFrame and df_gl_costs to an Excel file with the first row frozen and set column widths
 current_date = datetime.now().strftime('%Y-%m-%d')
-output_file_path = rf'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\Payrolls June & July 2024\output\OUTPUT_{input_file_name}_{Payroll_Number}_{current_date}.xlsx'
+output_file_path = rf'C:\Users\cmccullough\Desktop\Payroll Automation 1.0\NMG - February 2025\output\OUTPUT_{input_file_name}_{Payroll_Number}_{current_date}.xlsx'
 
 with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
     df_merged.to_excel(writer, index=False, sheet_name='Payroll Allocation Details')
